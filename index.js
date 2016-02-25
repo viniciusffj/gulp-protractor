@@ -76,6 +76,11 @@ var webdriver_update = function(opts, cb) {
 	var options = (cb ? opts : null);
 	var args = ["update", "--standalone"];
 	if (options) {
+
+		if (options.directConnect) {
+      args.splice(1, 1);
+    }
+
 		if (options.browsers) {
 			options.browsers.forEach(function(element, index, array) {
 				args.push("--" + element);

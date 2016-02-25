@@ -11,7 +11,7 @@ require('mocha');
 
 var gutil = require('gulp-util'),
     protactor = require('../').protractor,
-    webdriver = require('../').webdriver,
+    webdriver_update = require('../').webdriver_update,
     getProtractorDir = require('../').getProtractorDir,
     child_process = require('child_process'),
     events = require('events');
@@ -152,57 +152,43 @@ describe('gulp-protactor: protactor', function() {
 });
 
 
-describe('gulp-protactor: webdriver', function() {
+describe('gulp-protactor: webdriverupdate', function() {
+    var fakeProcess, callback;
 
-    it.skip('should call update and then start on the webdriver-manager', function(done) {
+    beforeEach(function() {
+        fakeProcess = new events.EventEmitter();
+        callback = function(){};
+    });
 
-        var fakeProcess = new events.EventEmitter();
-        var seconds_call = false;
+    afterEach(function() {
+      fakeProcess.emit('exit');
+    });
+
+    it('should call webdriver-manager update with --standalone by default', function(done) {
         var spy = sinon.stub(child_process, 'spawn', function(cmd, args, options) {
+            child_process.spawn.restore();
             expect(path.basename(cmd)).to.equal('webdriver-manager'+winExt);
-            if (!seconds_call) {
-                expect(args[0]).to.equal('update');
-            } else {
-                expect(args[0]).to.equal('start');
-                child_process.spawn.restore();
-                done();
-            }
+            expect(args[0]).to.equal('update');
+            expect(args[1]).to.equal('--standalone');
+            done();
             return fakeProcess;
         });
 
-        var wd = webdriver();
-        setTimeout(function() {
-            seconds_call = true;
-            fakeProcess.emit('close');
-        }, 100);
-
-
+        webdriver_update({}, callback);
     });
 
-    // it('should propogate protactor exit code', function(done) {
-    //     var fakeProcess = new events.EventEmitter();
-    //     var spy = sinon.stub(child_process, 'spawn', function(cmd, args, options) {
-    //         child_process.spawn.restore();
-    //         process.nextTick(function() { fakeProcess.emit('exit', 255) });
-    //         fakeProcess.kill = function() {};
-    //         return fakeProcess;
-    //     });
+    it('should be possible to call webdriver-manager update without --standalone', function(done) {
+        var spy = sinon.stub(child_process, 'spawn', function(cmd, args, options) {
+            child_process.spawn.restore();
+            expect(path.basename(cmd)).to.equal('webdriver-manager'+winExt);
+            expect(args.length).to.equal(1);
+            expect(args[0]).to.equal('update');
+            done();
+            return fakeProcess;
+        });
 
-    //     var srcFile = new gutil.File({
-    //         path: 'test/fixtures/test.js',
-    //         cwd: 'test/',
-    //         base: 'test/fixtures',
-    //         contents: null
-    //     });
+        webdriver_update({ directConnect: true}, callback);
+    });
 
-    //     var stream = protactor({
-    //         configFile: 'test/fixtures/protactor.config.js'
-    //     });
-
-    //     stream.write(srcFile);
-    //     stream.end();
-    //     stream.on('error', function(err) {
-    //         done();
-    //     });
-    // });
 });
+
